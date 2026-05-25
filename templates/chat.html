@@ -1,81 +1,276 @@
-<link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
-<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-
 <!DOCTYPE html>
-<html>
-	<head>
-		<title>Chatbot</title>
-		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-		<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css')}}"/>
-	</head>
-	
-	
-	<body>
-		<div class="container-fluid h-100">
-			<div class="row justify-content-center h-100">		
-				<div class="col-md-8 col-xl-6 chat">
-					<div class="card">
-						<div class="card-header msg_head">
-							<div class="d-flex bd-highlight">
-								<div class="img_cont">
-									<img src="https://cdn-icons-png.flaticon.com/512/387/387569.png" class="rounded-circle user_img">
-									<!-- <img src="https://www.prdistribution.com/spirit/uploads/pressreleases/2019/newsreleases/d83341deb75c4c4f6b113f27b1e42cd8-chatbot-florence-already-helps-thousands-of-patients-to-remember-their-medication.png" class="rounded-circle user_img"> -->
-									<span class="online_icon"></span>
-								</div>
-								<div class="user_info">
-									<span>Medical Chatbot</span>
-									<p>Ask me anything!</p>
-								</div>
-							</div>
-						</div>
-						<div id="messageFormeight" class="card-body msg_card_body">
-							
-							
-						</div>
-						<div class="card-footer">
-							<form id="messageArea" class="input-group">
-                                <input type="text" id="text" name="msg" placeholder="Type your message..." autocomplete="off" class="form-control type_msg" required/>
-								<div class="input-group-append">
-									<button type="submit" id="send" class="input-group-text send_btn"><i class="fas fa-location-arrow"></i></button>
-								</div>
-							</form>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-		
-		<script>
-			$(document).ready(function() {
-				$("#messageArea").on("submit", function(event) {
-					const date = new Date();
-					const hour = date.getHours();
-					const minute = date.getMinutes();
-					const str_time = hour+":"+minute;
-					var rawText = $("#text").val();
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediBot — AI Medical Assistant</title>
+  <meta name="description" content="Ask MediBot medical questions and get instant AI-powered answers based on comprehensive medical literature." />
 
-					var userHtml = '<div class="d-flex justify-content-end mb-4"><div class="msg_cotainer_send">' + rawText + '<span class="msg_time_send">'+ str_time + '</span></div><div class="img_cont_msg"><img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img_msg"></div></div>';
-					
-					$("#text").val("");
-					$("#messageFormeight").append(userHtml);
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
 
-					$.ajax({
-						data: {
-							msg: rawText,	
-						},
-						type: "POST",
-						url: "/get",
-					}).done(function(data) {
-						var botHtml = '<div class="d-flex justify-content-start mb-4"><div class="img_cont_msg"><img src="https://cdn-icons-png.flaticon.com/512/387/387569.png" class="rounded-circle user_img_msg"></div><div class="msg_cotainer">' + data + '<span class="msg_time">' + str_time + '</span></div></div>';
-						$("#messageFormeight").append($.parseHTML(botHtml));
-					});
-					event.preventDefault();
-				});
-			});
-		</script>
-        
-    </body>
+  <!-- Marked.js for markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=5" />
+</head>
+
+<body>
+  <!-- ===== ECG Heartbeat Loader Overlay ===== -->
+  <div class="loader-overlay" id="loaderOverlay">
+    <!-- Subtle background glow -->
+    <div class="loader-glow"></div>
+
+    <!-- ECG Trace -->
+    <svg class="loader-ecg-svg" viewBox="0 0 600 100" preserveAspectRatio="xMidYMid meet">
+      <!-- Glow filter -->
+      <defs>
+        <filter id="ecgGlow">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      <!-- Shadow / glow layer -->
+      <path class="loader-ecg-path loader-ecg-glow-path"
+        d="M0,50 L140,50 L155,50 L160,42 L165,50 L172,50 L176,78 L182,18 L188,56 L192,50 L200,38 L210,50
+           L310,50 L325,50 L330,42 L335,50 L342,50 L346,78 L352,18 L358,56 L362,50 L370,38 L380,50 L600,50"
+        filter="url(#ecgGlow)" />
+      <!-- Main crisp line -->
+      <path class="loader-ecg-path loader-ecg-main-path"
+        d="M0,50 L140,50 L155,50 L160,42 L165,50 L172,50 L176,78 L182,18 L188,56 L192,50 L200,38 L210,50
+           L310,50 L325,50 L330,42 L335,50 L342,50 L346,78 L352,18 L358,56 L362,50 L370,38 L380,50 L600,50" />
+    </svg>
+
+    <!-- Brand that fades in after ECG -->
+    <div class="loader-brand" id="loaderBrand">
+      <div class="loader-icon-ring">
+        <div class="loader-icon">🩺</div>
+      </div>
+      <div class="loader-name">MediBot</div>
+      <div class="loader-tagline">AI Medical Assistant</div>
+    </div>
+  </div>
+
+  <!-- Animated Background Orbs -->
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
+
+  <!-- Page Wrapper -->
+  <div class="page-wrapper">
+    <div class="chat-container">
+
+      <!-- Header -->
+      <div class="chat-header">
+        <div class="header-avatar">
+          <div class="avatar-ring">
+            <div class="avatar-icon">🩺</div>
+          </div>
+          <span class="status-dot"></span>
+        </div>
+        <div class="header-info">
+          <div class="header-name">MediBot</div>
+          <div class="header-status">Online — Ready to help</div>
+        </div>
+        <div class="header-badge">
+          <span>🔬</span>
+          <span>AI POWERED</span>
+        </div>
+      </div>
+
+      <!-- Messages Body -->
+      <div class="chat-body" id="chatBody">
+
+        <!-- Welcome State (hidden once first message is sent) -->
+        <div class="welcome-card" id="welcomeCard">
+          <div class="welcome-icon">🏥</div>
+          <h2>How can I help you today?</h2>
+          <p>I'm an AI-powered medical assistant trained on comprehensive medical literature. Ask me anything about symptoms, medications, conditions, or general health advice.</p>
+        </div>
+
+      </div>
+
+      <!-- Typing Indicator (lives outside body for fixed positioning) -->
+      <div style="padding: 0 20px;">
+        <div class="typing-indicator" id="typingIndicator">
+          <div class="msg-avatar bot-avatar">🩺</div>
+          <div class="ecg-wrap">
+            <span class="ecg-label">Analyzing…</span>
+            <svg class="ecg-svg" viewBox="0 0 80 28" preserveAspectRatio="none">
+              <path class="ecg-path" d="M0,14 L15,14 L20,4 L25,24 L30,14 L38,14 L42,8 L46,20 L50,14 L65,14 L70,4 L75,24 L80,14" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Suggestion Chips -->
+      <div class="chips-bar" id="chipsBar">
+        <button class="chip" data-msg="What are common medication side effects I should know about?">💊 Medication Side Effects</button>
+        <button class="chip" data-msg="How do I check my symptoms and when should I see a doctor?">🤒 Check Symptoms</button>
+        <button class="chip" data-msg="What are the basic first aid steps for common injuries?">🩹 First Aid Advice</button>
+        <button class="chip" data-msg="What vitamins and supplements are recommended for daily health?">🥗 Nutrition & Vitamins</button>
+        <button class="chip" data-msg="What are the warning signs of a heart attack?">❤️ Heart Health</button>
+        <button class="chip" data-msg="How can I manage stress and improve my mental health?">🧠 Mental Health</button>
+      </div>
+
+      <!-- Footer / Input -->
+      <div class="chat-footer">
+        <form id="messageForm">
+          <div class="input-row">
+            <input
+              type="text"
+              id="msgInput"
+              name="msg"
+              class="msg-input"
+              placeholder="Ask a medical question…"
+              autocomplete="off"
+              required
+            />
+            <button type="submit" class="send-btn" id="sendBtn" aria-label="Send message">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+              </svg>
+            </button>
+          </div>
+        </form>
+        <p class="disclaimer">⚠️ MediBot provides informational content only. Always consult a qualified healthcare professional for medical decisions.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // --- Configure marked.js ---
+    marked.setOptions({ breaks: true, gfm: true });
+
+    const chatBody       = document.getElementById('chatBody');
+    const messageForm    = document.getElementById('messageForm');
+    const msgInput       = document.getElementById('msgInput');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const welcomeCard    = document.getElementById('welcomeCard');
+    const chipsBar       = document.getElementById('chipsBar');
+    let welcomeDismissed = false;
+
+    // --- Helper: format timestamp ---
+    function getTime() {
+      const d = new Date();
+      const h = d.getHours().toString().padStart(2, '0');
+      const m = d.getMinutes().toString().padStart(2, '0');
+      return `${h}:${m}`;
+    }
+
+    // --- Append user message bubble ---
+    function appendUserMessage(text) {
+      if (!welcomeDismissed) {
+        welcomeCard.style.display = 'none';
+        welcomeDismissed = true;
+      }
+      const row = document.createElement('div');
+      row.className = 'msg-row user-row';
+      row.innerHTML = `
+        <div class="msg-avatar user-avatar">🙂</div>
+        <div class="msg-content">
+          <div class="msg-bubble user-bubble">${escapeHtml(text)}</div>
+          <div class="msg-time">${getTime()}</div>
+        </div>
+      `;
+      chatBody.appendChild(row);
+      scrollBottom();
+    }
+
+    // --- Append bot message bubble ---
+    function appendBotMessage(markdownText) {
+      const row = document.createElement('div');
+      row.className = 'msg-row bot-row';
+      row.innerHTML = `
+        <div class="msg-avatar bot-avatar">🩺</div>
+        <div class="msg-content">
+          <div class="msg-bubble bot-bubble">${marked.parse(markdownText)}</div>
+          <div class="msg-time">${getTime()}</div>
+        </div>
+      `;
+      chatBody.appendChild(row);
+      scrollBottom();
+    }
+
+    // --- Escape HTML for user input ---
+    function escapeHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // --- Scroll to bottom ---
+    function scrollBottom() {
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    // --- Show / hide ECG typing indicator ---
+    function showTyping()  { typingIndicator.classList.add('visible'); scrollBottom(); }
+    function hideTyping()  { typingIndicator.classList.remove('visible'); }
+
+    // --- Disable / enable send button ---
+    function setSending(val) {
+      msgInput.disabled = val;
+      document.getElementById('sendBtn').disabled = val;
+    }
+
+    // --- Handle form submit ---
+    messageForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const text = msgInput.value.trim();
+      if (!text) return;
+
+      msgInput.value = '';
+      appendUserMessage(text);
+      setSending(true);
+      showTyping();
+
+      fetch('/get', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `msg=${encodeURIComponent(text)}`
+      })
+      .then(res => res.text())
+      .then(data => {
+        hideTyping();
+        appendBotMessage(data);
+        setSending(false);
+        msgInput.focus();
+      })
+      .catch(() => {
+        hideTyping();
+        appendBotMessage('⚠️ Sorry, I encountered an error. Please try again.');
+        setSending(false);
+        msgInput.focus();
+      });
+    });
+
+    // --- Suggestion chips ---
+    chipsBar.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', function() {
+        msgInput.value = this.dataset.msg;
+        msgInput.focus();
+        messageForm.dispatchEvent(new Event('submit'));
+      });
+    });
+
+    // --- ECG Loader Dismiss ---
+    (function() {
+      const overlay = document.getElementById('loaderOverlay');
+      // After ECG draws + brand appears, slide the overlay up
+      setTimeout(function() {
+        overlay.classList.add('done');
+      }, 3200);
+      // Remove from DOM after transition ends
+      overlay.addEventListener('transitionend', function() {
+        overlay.remove();
+      });
+    })();
+  </script>
+</body>
 </html>
